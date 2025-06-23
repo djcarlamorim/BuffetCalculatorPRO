@@ -1,0 +1,32 @@
+name: Build APK Automático
+on: [push]  # Executa sempre que você fizer um push
+
+jobs:
+  build:
+    runs-on: ubuntu-latest  # Máquina virtual com Linux
+
+    steps:
+    - name: Checkout código
+      uses: actions/checkout@v4  # Baixa seu código
+
+    - name: Configurar Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'  # Versão compatível com Buildozer
+
+    - name: Instalar Buildozer e dependências
+      run: |
+        pip install buildozer
+        sudo apt-get update
+        sudo apt-get install -y git unzip openjdk-17-jdk zlib1g-dev
+
+    - name: Rodar Buildozer
+      run: |
+        buildozer init
+        buildozer -v android debug
+
+    - name: Fazer upload do APK
+      uses: actions/upload-artifact@v3
+      with:
+        name: APK-Gerado
+        path: bin/*.apk  # Pasta onde o APK é gerado
