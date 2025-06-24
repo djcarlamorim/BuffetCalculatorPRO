@@ -57,7 +57,8 @@ jobs:
 
     - name: Change to windows_build directory and run Buildozer
       run: |
-        cd $GITHUB_WORKSPACE/windows_build  # Muda para o diretório correto
+        # Mudar para o diretório onde está o arquivo buildozer.spec
+        cd $GITHUB_WORKSPACE/windows_build  # Ajuste se necessário
         buildozer -v android debug  # Executa o buildozer para gerar o APK
 
     - name: Upload APK as artifact
