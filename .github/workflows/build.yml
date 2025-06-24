@@ -37,7 +37,7 @@ jobs:
 
         pip install --upgrade pip
         pip install buildozer
-        pip install cython  # Instala o Cython necessário para a compilação
+        pip install cython  # Instalar Cython
 
     - name: Set up Android SDK
       uses: android-actions/setup-android@v2
@@ -45,6 +45,17 @@ jobs:
         api-level: 33  # Ou versão desejada
         build-tools: 30.0.3
         ndk-version: 21.3.6528147
+
+    - name: Accept SDK Licenses and Install build-tools and Aidl
+      run: |
+        # Aceitar as licenças
+        yes | $ANDROID_HOME/cmdline-tools/bin/sdkmanager --licenses
+        # Instalar o build-tools e Aidl
+        $ANDROID_HOME/cmdline-tools/bin/sdkmanager "build-tools;30.0.3"
+        $ANDROID_HOME/cmdline-tools/bin/sdkmanager "platform-tools"
+        $ANDROID_HOME/cmdline-tools/bin/sdkmanager "android-33"  # Ou versão que você deseja
+        # Verificar se Aidl está presente
+        $ANDROID_HOME/platform-tools/adb version
 
     - name: Change to windows_build directory and run Buildozer
       run: |
