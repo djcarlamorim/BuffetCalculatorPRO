@@ -45,10 +45,9 @@ jobs:
         build-tools: 30.0.3
         ndk-version: 21.3.6528147
 
-    - name: Build APK with Buildozer
+    - name: Ensure build layout and run Buildozer
       run: |
-        # Certifique-se de estar no diretório correto onde o buildozer.spec está localizado
-        cd $GITHUB_WORKSPACE  # Certifique-se de que o diretório está correto
+        cd $GITHUB_WORKSPACE  # Certifique-se de estar no diretório correto
         buildozer -v android debug
 
     - name: Upload APK as artifact
