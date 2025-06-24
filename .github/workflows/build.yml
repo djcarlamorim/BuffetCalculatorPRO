@@ -37,6 +37,7 @@ jobs:
 
         pip install --upgrade pip
         pip install buildozer
+        pip install cython  # Instala o Cython necessário para a compilação
 
     - name: Set up Android SDK
       uses: android-actions/setup-android@v2
