@@ -47,14 +47,18 @@ jobs:
         wget https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip
         unzip commandlinetools-linux-8512546_latest.zip
 
+        # Verificar se o sdkmanager foi extraído corretamente
+        ls -l $HOME/android-sdk/cmdline-tools/bin
+
         # Definir as variáveis de ambiente corretamente
         echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
         echo "PATH=$PATH:$ANDROID_HOME/cmdline-tools/bin:$ANDROID_HOME/platform-tools" >> $GITHUB_ENV
 
-        # Verificar se o sdkmanager existe e aceitar as licenças
-        yes | $ANDROID_HOME/cmdline-tools/bin/sdkmanager --licenses
+        # Verificar o sdkmanager
+        ls $ANDROID_HOME/cmdline-tools/bin
 
-        # Instalar as ferramentas necessárias do SDK
+        # Aceitar as licenças e instalar SDK necessário
+        yes | $ANDROID_HOME/cmdline-tools/bin/sdkmanager --licenses
         $ANDROID_HOME/cmdline-tools/bin/sdkmanager "build-tools;30.0.3" "platform-tools" "android-33"
 
     - name: Change to windows_build directory and run Buildozer
