@@ -47,25 +47,31 @@ jobs:
         wget https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip
         unzip commandlinetools-linux-8512546_latest.zip
 
-        # Verificar a estrutura de diretórios após a extração
+        # Verificar a estrutura do SDK e garantir que o sdkmanager foi extraído corretamente
+        echo "Verificando estrutura do diretório do SDK Android:"
         ls -l $HOME/android-sdk/cmdline-tools
 
-        # Verificar a presença do sdkmanager
+        # Garantir que a pasta bin foi criada corretamente
+        echo "Verificando o diretório bin dentro de cmdline-tools"
         ls -l $HOME/android-sdk/cmdline-tools/bin
 
-        # Definir as variáveis de ambiente corretamente
+        # Garantir que o sdkmanager esteja no caminho correto
+        echo "Verificando se sdkmanager está presente:"
+        ls $HOME/android-sdk/cmdline-tools/bin/sdkmanager
+
+        # Definir variáveis de ambiente para o SDK
         echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
         echo "PATH=$PATH:$ANDROID_HOME/cmdline-tools/bin:$ANDROID_HOME/platform-tools" >> $GITHUB_ENV
 
-        # Aceitar as licenças do SDK
+        # Aceitar as licenças do SDK Android
         yes | $ANDROID_HOME/cmdline-tools/bin/sdkmanager --licenses
 
-        # Instalar as ferramentas necessárias do SDK (Build-tools e plataformas)
+        # Instalar as ferramentas necessárias do SDK
         $ANDROID_HOME/cmdline-tools/bin/sdkmanager "build-tools;30.0.3" "platform-tools" "android-33"
 
     - name: Change to windows_build directory and run Buildozer
       run: |
-        cd $GITHUB_WORKSPACE/windows_build  # Muda para o diretório correto
+        cd $GITHUB_WORKSPACE/windows_build  # Muda para o diretório correto onde o buildozer.spec está localizado
         buildozer -v android debug  # Executa o buildozer para gerar o APK
 
     - name: Upload APK as artifact
