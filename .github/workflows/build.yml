@@ -40,22 +40,20 @@ jobs:
         pip install cython  # Instalar Cython
 
     - name: Set up Android SDK
-      uses: android-actions/setup-android@v2
-      with:
-        api-level: 33  # Ou versão desejada
-        build-tools: 30.0.3
-        ndk-version: 21.3.6528147
-
-    - name: Accept SDK Licenses and Install build-tools and Aidl
       run: |
-        # Aceitar as licenças
+        # Baixar e extrair o SDK
+        mkdir -p $HOME/android-sdk
+        cd $HOME/android-sdk
+        wget https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip
+        unzip commandlinetools-linux-8512546_latest.zip
+
+        # Definir as variáveis de ambiente
+        echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
+        echo "PATH=$PATH:$ANDROID_HOME/cmdline-tools/bin:$ANDROID_HOME/platform-tools" >> $GITHUB_ENV
+
+        # Aceitar as licenças e instalar SDK necessário
         yes | $ANDROID_HOME/cmdline-tools/bin/sdkmanager --licenses
-        # Instalar o build-tools e Aidl
-        $ANDROID_HOME/cmdline-tools/bin/sdkmanager "build-tools;30.0.3"
-        $ANDROID_HOME/cmdline-tools/bin/sdkmanager "platform-tools"
-        $ANDROID_HOME/cmdline-tools/bin/sdkmanager "android-33"  # Ou versão que você deseja
-        # Verificar se Aidl está presente
-        $ANDROID_HOME/platform-tools/adb version
+        $ANDROID_HOME/cmdline-tools/bin/sdkmanager "build-tools;30.0.3" "platform-tools" "android-33"  # Instalar o build-tools e Android SDK
 
     - name: Change to windows_build directory and run Buildozer
       run: |
