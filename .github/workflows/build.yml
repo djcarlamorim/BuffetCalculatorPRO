@@ -1,6 +1,12 @@
-name: Build APK BuffetCalculatorPRO
+name: Build APK with Buildozer
 
-on: [push]
+on:
+  push:
+    branches:
+      - main  # ou a branch que você deseja
+  pull_request:
+    branches:
+      - main  # ou a branch que você deseja
 
 jobs:
   build:
@@ -8,54 +14,41 @@ jobs:
     timeout-minutes: 40
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v2
 
-    - name: Set up Python 3.9
-      uses: actions/setup-python@v4
+    - name: Set up Python
+      uses: actions/setup-python@v2
       with:
         python-version: '3.9'
 
-    - name: Install system dependencies
+    - name: Install dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y \
-          git unzip openjdk-8-jdk \
-          python3-pip autoconf libtool \
-          pkg-config zlib1g-dev
-
-    - name: Install Buildozer and Cython
-      run: |
+          python3-pip \
+          build-essential \
+          libssl-dev \
+          libffi-dev \
+          python3-dev \
+          zip \
+          unzip \
+          openjdk-8-jdk
         pip install --upgrade pip
-        pip install buildozer cython==0.29.33
+        pip install buildozer
 
-    - name: Download Apache Ant manually
+    - name: Install Android dependencies
       run: |
-        wget https://downloads.apache.org/ant/binaries/apache-ant-1.10.12-bin.tar.gz -O ant.tar.gz
-        tar -xzf ant.tar.gz
-        sudo mv apache-ant-1.10.12 /opt/ant
-        echo "ANT_HOME=/opt/ant" >> $GITHUB_ENV
-        echo "/opt/ant/bin" >> $GITHUB_PATH
+        sudo apt-get install -y \
+          android-sdk \
+          android-ndk
 
-    - name: Verify Apache Ant installation
+    - name: Build APK with Buildozer
       run: |
-        ant -version
-
-    - name: Accept Android licenses
-      run: |
-        mkdir -p ~/.android
-        echo -e "\n8933bad161af4178b1185d1a37fbf41ea5269c55\nd56f5187479451eabf01fb78af6dfcb131a6481e" > ~/.android/licenses.cfg
-
-    - name: Run Buildozer
-      env:
-        BUILDOVER_SKIP_SDK_CHECK: 1
-        ANT_HOME: /opt/ant
-      run: |
-        buildozer init
         buildozer -v android debug
 
-    - name: Upload APK
-      if: success()
-      uses: actions/upload-artifact@v4
+    - name: Upload APK as artifact
+      uses: actions/upload-artifact@v2
       with:
         name: buffet-calculator-pro-apk
         path: bin/*.apk
