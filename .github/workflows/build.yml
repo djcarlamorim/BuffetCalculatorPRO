@@ -3,10 +3,10 @@ name: Build APK with Buildozer
 on:
   push:
     branches:
-      - main  # ou a branch que você deseja
+      - main
   pull_request:
     branches:
-      - main  # ou a branch que você deseja
+      - main
 
 jobs:
   build:
@@ -45,7 +45,7 @@ jobs:
         wget https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip
         unzip commandlinetools-linux-8512546_latest.zip
         yes | $HOME/android-sdk/cmdline-tools/bin/sdkmanager --sdk_root=$HOME/android-sdk --licenses
-        $HOME/android-sdk/cmdline-tools/bin/sdkmanager --sdk_root=$HOME/android-sdk "platform-tools" "build-tools;30.0.3" "android-30"
+        $HOME/android-sdk/cmdline-tools/bin/sdkmanager --sdk_root=$HOME/android-sdk "platform-tools" "build-tools;30.0.3" "android-29"
 
     - name: Install Android NDK
       run: |
