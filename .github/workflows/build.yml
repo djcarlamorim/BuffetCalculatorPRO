@@ -42,11 +42,13 @@ jobs:
       uses: android-actions/setup-android@v2
       with:
         api-level: 33  # Ou versão desejada
-        build-tools: 30.0.3  # Ajuste conforme necessário
-        ndk-version: 21.3.6528147  # Especifique a versão do NDK se necessário
+        build-tools: 30.0.3
+        ndk-version: 21.3.6528147
 
     - name: Build APK with Buildozer
       run: |
+        # Certifique-se de estar no diretório correto onde o buildozer.spec está localizado
+        cd $GITHUB_WORKSPACE  # Certifique-se de que o diretório está correto
         buildozer -v android debug
 
     - name: Upload APK as artifact
