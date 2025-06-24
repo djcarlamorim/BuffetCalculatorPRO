@@ -47,18 +47,19 @@ jobs:
         wget https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip
         unzip commandlinetools-linux-8512546_latest.zip
 
-        # Definir as variáveis de ambiente
+        # Definir as variáveis de ambiente corretamente
         echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
         echo "PATH=$PATH:$ANDROID_HOME/cmdline-tools/bin:$ANDROID_HOME/platform-tools" >> $GITHUB_ENV
 
-        # Aceitar as licenças e instalar SDK necessário
+        # Verificar se o sdkmanager existe e aceitar as licenças
         yes | $ANDROID_HOME/cmdline-tools/bin/sdkmanager --licenses
-        $ANDROID_HOME/cmdline-tools/bin/sdkmanager "build-tools;30.0.3" "platform-tools" "android-33"  # Instalar o build-tools e Android SDK
+
+        # Instalar as ferramentas necessárias do SDK
+        $ANDROID_HOME/cmdline-tools/bin/sdkmanager "build-tools;30.0.3" "platform-tools" "android-33"
 
     - name: Change to windows_build directory and run Buildozer
       run: |
-        # Mudar para o diretório onde está o arquivo buildozer.spec
-        cd $GITHUB_WORKSPACE/windows_build  # Ajuste se necessário
+        cd $GITHUB_WORKSPACE/windows_build  # Muda para o diretório correto
         buildozer -v android debug  # Executa o buildozer para gerar o APK
 
     - name: Upload APK as artifact
