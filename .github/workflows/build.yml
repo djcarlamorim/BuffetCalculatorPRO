@@ -55,7 +55,7 @@ jobs:
 
     - name: Upload APK
       if: success()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v2
       with:
         name: buffet-calculator-pro-apk
         path: bin/*.apk
