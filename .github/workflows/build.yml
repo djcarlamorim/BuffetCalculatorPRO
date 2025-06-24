@@ -48,7 +48,7 @@ jobs:
         buildozer -v android debug
 
     - name: Upload APK as artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: buffet-calculator-pro-apk
         path: bin/*.apk
