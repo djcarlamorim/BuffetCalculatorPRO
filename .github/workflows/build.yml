@@ -11,18 +11,18 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 60  # Aumentei o timeout para builds mais longos
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v2
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v4
       with:
         python-version: '3.9'
 
-    - name: Install dependencies
+    - name: Install system dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y \
@@ -33,51 +33,64 @@ jobs:
           python3-dev \
           zip \
           unzip \
-          openjdk-8-jdk
+          openjdk-17-jdk \  # Java 17 é mais compatível com versões recentes do Android
+          zlib1g-dev \
+          ccache \
+          git
 
-        pip install --upgrade pip
-        pip install buildozer
-        pip install cython  # Instalar Cython
+        pip install --upgrade pip wheel setuptools
+        pip install buildozer cython virtualenv
 
     - name: Set up Android SDK
       run: |
-        # Baixar e extrair a versão correta do SDK Android
-        mkdir -p $HOME/android-sdk/cmdline-tools
-        cd $HOME/android-sdk/cmdline-tools
+        # Criar estrutura de diretórios correta para o SDK
+        mkdir -p $HOME/android-sdk/cmdline-tools/latest
+        cd $HOME/android-sdk/cmdline-tools/latest
         
-        # Usando o link oficial e atualizado do SDK Android
-        wget https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip
-        unzip commandlinetools-linux-8512546_latest.zip
+        # Baixar Command Line Tools mais recentes
+        wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline-tools.zip
+        unzip cmdline-tools.zip
+        rm cmdline-tools.zip
 
-        # Verificar a estrutura do SDK e garantir que o sdkmanager foi extraído corretamente
-        echo "Verificando estrutura do diretório do SDK Android:"
-        ls -l $HOME/android-sdk/cmdline-tools
-
-        # Garantir que a pasta bin foi criada corretamente
-        echo "Verificando o diretório bin dentro de cmdline-tools"
-        ls -l $HOME/android-sdk/cmdline-tools/bin
-
-        # Garantir que o sdkmanager esteja no caminho correto
-        echo "Verificando se sdkmanager está presente:"
-        ls $HOME/android-sdk/cmdline-tools/bin/sdkmanager
-
-        # Definir variáveis de ambiente corretamente
+        # Configurar variáveis de ambiente
         echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
-        echo "PATH=$PATH:$ANDROID_HOME/cmdline-tools/bin:$ANDROID_HOME/platform-tools" >> $GITHUB_ENV
+        echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
+        echo "PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools" >> $GITHUB_ENV
 
-        # Aceitar as licenças do SDK Android
-        yes | $ANDROID_HOME/cmdline-tools/bin/sdkmanager --licenses
+        # Aceitar licenças
+        yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
 
-        # Instalar as ferramentas necessárias do SDK
-        $ANDROID_HOME/cmdline-tools/bin/sdkmanager "build-tools;30.0.3" "platform-tools" "android-33"
+        # Instalar componentes necessários
+        $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
+          "platform-tools" \
+          "build-tools;34.0.0" \
+          "platforms;android-33" \
+          "ndk;25.1.8937393"
 
-    - name: Change to windows_build directory and run Buildozer
+    - name: Configure Buildozer
       run: |
-        cd $GITHUB_WORKSPACE/windows_build  # Muda para o diretório correto onde o buildozer.spec está localizado
-        buildozer -v android debug  # Executa o buildozer para gerar o APK
+        # Criar diretório para o build se não existir
+        mkdir -p $GITHUB_WORKSPACE/build
+        cd $GITHUB_WORKSPACE/build
+        
+        # Inicializar Buildozer se não houver arquivo .spec
+        if [ ! -f buildozer.spec ]; then
+          buildozer init
+        fi
+        
+        # Copiar seu arquivo .spec existente se necessário
+        if [ -f $GITHUB_WORKSPACE/windows_build/buildozer.spec ]; then
+          cp $GITHUB_WORKSPACE/windows_build/buildozer.spec .
+        fi
 
-    - name: Upload APK as artifact
+    - name: Run Buildozer
+      run: |
+        cd $GITHUB_WORKSPACE/build
+        buildozer -v android clean
+        buildozer -v android debug
+
+    - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: buffet-calculator-pro-apk
-        path: windows_build/bin/*.apk
+        name: app-apk
+        path: $GITHUB_WORKSPACE/build/bin/*.apk
