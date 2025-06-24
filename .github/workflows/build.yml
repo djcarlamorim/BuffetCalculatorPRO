@@ -41,13 +41,15 @@ jobs:
 
     - name: Set up Android SDK
       run: |
-        # Baixar e extrair o SDK Android
+        # Baixar e extrair a versão correta do SDK Android
         mkdir -p $HOME/android-sdk/cmdline-tools
         cd $HOME/android-sdk/cmdline-tools
-        wget https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip
-        unzip commandlinetools-linux-8512546_latest.zip
 
-        # Verificar a estrutura do SDK e garantir que o sdkmanager foi extraído corretamente
+        # Baixar a versão correta do command-line-tools
+        wget https://dl.google.com/android/repository/commandlinetools-linux-7283050_latest.zip
+        unzip commandlinetools-linux-7283050_latest.zip
+
+        # Verificar se o sdkmanager foi extraído corretamente
         echo "Verificando estrutura do diretório do SDK Android:"
         ls -l $HOME/android-sdk/cmdline-tools
 
@@ -59,7 +61,7 @@ jobs:
         echo "Verificando se sdkmanager está presente:"
         ls $HOME/android-sdk/cmdline-tools/bin/sdkmanager
 
-        # Definir variáveis de ambiente para o SDK
+        # Definir variáveis de ambiente corretamente
         echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
         echo "PATH=$PATH:$ANDROID_HOME/cmdline-tools/bin:$ANDROID_HOME/platform-tools" >> $GITHUB_ENV
 
