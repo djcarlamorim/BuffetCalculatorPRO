@@ -1,32 +1,56 @@
-name: Build APK Automático
+name: Build APK BuffetCalculatorPRO
+
 on: [push]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 40
 
     steps:
-    - name: Checkout código
-      uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
-    - name: Configurar Python 3.9
+    - name: Set up Python 3.9
       uses: actions/setup-python@v4
       with:
         python-version: '3.9'
 
-    - name: Instalar dependências
+    - name: Install system dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y git unzip openjdk-17-jdk zlib1g-dev python3-pip
-        pip install cython==0.29.33 buildozer
+        sudo apt-get install -y \
+          git unzip openjdk-17-jdk \
+          python3-pip autoconf libtool \
+          pkg-config zlib1g-dev
 
-    - name: Rodar Buildozer
+    - name: Install Buildozer and Cython
+      run: |
+        pip install --upgrade pip
+        pip install buildozer cython==0.29.33
+
+    - name: Download Apache Ant manually
+      run: |
+        wget https://downloads.apache.org/ant/binaries/apache-ant-1.10.12-bin.tar.gz -O ant.tar.gz
+        tar -xzf ant.tar.gz
+        sudo mv apache-ant-1.10.12 /opt/ant
+        echo "/opt/ant/bin" >> $GITHUB_PATH
+
+    - name: Accept Android licenses
+      run: |
+        mkdir -p ~/.android
+        echo -e "\n8933bad161af4178b1185d1a37fbf41ea5269c55\nd56f5187479451eabf01fb78af6dfcb131a6481e" > ~/.android/licenses.cfg
+
+    - name: Run Buildozer
+      env:
+        BUILDÖZER_SKIP_SDK_CHECK: 1
+        ANT_HOME: /opt/ant
       run: |
         buildozer init
         buildozer -v android debug
 
     - name: Upload APK
+      if: success()
       uses: actions/upload-artifact@v4
       with:
-        name: APK-Gerado
+        name: BuffetCalculatorPRO-APK
         path: bin/*.apk
