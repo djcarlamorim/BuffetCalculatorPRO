@@ -19,7 +19,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y \
-          git unzip openjdk-17-jdk \
+          git unzip openjdk-8-jdk \
           python3-pip autoconf libtool \
           pkg-config zlib1g-dev
 
@@ -33,7 +33,12 @@ jobs:
         wget https://downloads.apache.org/ant/binaries/apache-ant-1.10.12-bin.tar.gz -O ant.tar.gz
         tar -xzf ant.tar.gz
         sudo mv apache-ant-1.10.12 /opt/ant
+        echo "ANT_HOME=/opt/ant" >> $GITHUB_ENV
         echo "/opt/ant/bin" >> $GITHUB_PATH
+
+    - name: Verify Apache Ant installation
+      run: |
+        ant -version
 
     - name: Accept Android licenses
       run: |
@@ -42,7 +47,7 @@ jobs:
 
     - name: Run Buildozer
       env:
-        BUILDÖZER_SKIP_SDK_CHECK: 1
+        BUILDOVER_SKIP_SDK_CHECK: 1
         ANT_HOME: /opt/ant
       run: |
         buildozer init
@@ -50,7 +55,7 @@ jobs:
 
     - name: Upload APK
       if: success()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v3
       with:
-        name: BuffetCalculatorPRO-APK
+        name: buffet-calculator-pro-apk
         path: bin/*.apk
