@@ -42,8 +42,8 @@ jobs:
     - name: Set up Android SDK
       run: |
         # Baixar e extrair o SDK
-        mkdir -p $HOME/android-sdk
-        cd $HOME/android-sdk
+        mkdir -p $HOME/android-sdk/cmdline-tools
+        cd $HOME/android-sdk/cmdline-tools
         wget https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip
         unzip commandlinetools-linux-8512546_latest.zip
 
