@@ -34,14 +34,22 @@ jobs:
           zip \
           unzip \
           openjdk-8-jdk
+
         pip install --upgrade pip
         pip install buildozer
 
-    - name: Install Android dependencies
+    - name: Install Android SDK
       run: |
-        sudo apt-get install -y \
-          android-sdk \
-          android-ndk
+        mkdir -p $HOME/android-sdk
+        cd $HOME/android-sdk
+        wget https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip
+        unzip commandlinetools-linux-8512546_latest.zip
+        yes | $HOME/android-sdk/cmdline-tools/bin/sdkmanager --sdk_root=$HOME/android-sdk --licenses
+        $HOME/android-sdk/cmdline-tools/bin/sdkmanager --sdk_root=$HOME/android-sdk "platform-tools" "build-tools;30.0.3" "android-30"
+
+    - name: Install Android NDK
+      run: |
+        $HOME/android-sdk/cmdline-tools/bin/sdkmanager --sdk_root=$HOME/android-sdk "ndk;21.3.6528147"
 
     - name: Build APK with Buildozer
       run: |
