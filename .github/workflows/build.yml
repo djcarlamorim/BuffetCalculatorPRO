@@ -39,12 +39,11 @@ jobs:
         pip install buildozer
 
     - name: Set up Android SDK
-      uses: react-native-community/android-sdk@v1
+      uses: calebporzio/setup-android@v1.0.0
       with:
-        api-level: 33  # Escolha a versão do Android que você quer usar
+        api-level: 33
         build-tools: 30.0.3
-        sdk-manager: true  # Instalar o SDK Manager
-        ndk: 21.3.6528147 # Especifique o NDK se necessário
+        ndk-version: 21.3.6528147
 
     - name: Build APK with Buildozer
       run: |
