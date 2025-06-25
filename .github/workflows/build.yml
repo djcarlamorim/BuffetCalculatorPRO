@@ -78,8 +78,8 @@ jobs:
           git clone https://github.com/kivy/python-for-android.git $GITHUB_WORKSPACE/build/.buildozer/android/platform/python-for-android
         fi
         
-        # Instala dependências do python-for-android
-        pip install -r $GITHUB_WORKSPACE/build/.buildozer/android/platform/python-for-android/requirements.txt
+        # Instala dependências necessárias diretamente via pip
+        pip install python-for-android colorama sh
 
     - name: Create buildozer.spec and set version
       run: |
