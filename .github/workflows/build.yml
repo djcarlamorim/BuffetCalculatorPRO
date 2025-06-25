@@ -1,3 +1,103 @@
-- name: Copy requirements.txt
-  run: |
-    cp $GITHUB_WORKSPACE/windows_build/requirements.txt $GITHUB_WORKSPACE/
+name: Build APK with Buildozer
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          python3-pip \
+          build-essential \
+          libssl-dev \
+          libffi-dev \
+          python3-dev \
+          zip \
+          unzip \
+          openjdk-17-jdk \
+          zlib1g-dev \
+          ccache \
+          git \
+          libncurses5 \
+          libtinfo5
+
+        pip install --upgrade pip wheel setuptools
+        pip install buildozer cython virtualenv appdirs
+
+    - name: Set up Android SDK
+      run: |
+        mkdir -p $HOME/android-sdk/cmdline-tools/latest
+        cd $HOME/android-sdk/cmdline-tools/latest
+        
+        wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
+        unzip commandlinetools-linux-9477386_latest.zip
+        rm commandlinetools-linux-9477386_latest.zip
+
+        echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
+        echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
+        echo "PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools" >> $GITHUB_ENV
+
+        yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+        $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
+          "platform-tools" \
+          "build-tools;34.0.0" \
+          "platforms;android-33" \
+          "ndk;25.1.8937393"
+
+    - name: Copy requirements.txt
+      run: |
+        cp $GITHUB_WORKSPACE/windows_build/requirements.txt $GITHUB_WORKSPACE/
+
+    - name: Install dependencies from requirements.txt
+      run: |
+        pip install -r requirements.txt
+
+    - name: Prepare Buildozer environment
+      run: |
+        mkdir -p $GITHUB_WORKSPACE/build/.buildozer/android/platform
+        cd $GITHUB_WORKSPACE/build
+
+        # Instala dependências essenciais do python-for-android
+        pip install colorama sh python-for-android
+
+    - name: Run Buildozer
+      run: |
+        cd $GITHUB_WORKSPACE/build
+        
+        if [ ! -f buildozer.spec ]; then
+          buildozer init
+          echo "[app]" > buildozer.spec
+          echo "title = MyApp" >> buildozer.spec
+          echo "package.name = myapp" >> buildozer.spec
+          echo "package.domain = org.test" >> buildozer.spec
+          echo "source.dir = ." >> buildozer.spec
+          echo "requirements = python3,kivy" >> buildozer.spec
+          echo "android.ndk_path = $HOME/android-sdk/ndk/25.1.8937393" >> buildozer.spec
+          echo "android.sdk_path = $HOME/android-sdk" >> buildozer.spec
+        fi
+
+        buildozer -v android clean
+        buildozer -v android debug
+
+    - name: Upload APK
+      if: success()
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-apk
+        path: $GITHUB_WORKSPACE/build/bin/*.apk
