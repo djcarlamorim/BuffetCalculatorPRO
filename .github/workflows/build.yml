@@ -7,17 +7,18 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
-    timeout-minutes: 90  # Aumentado para builds complexos
+    timeout-minutes: 90
 
     steps:
-    - uses: actions/checkout@v4
-
-    - name: Set up Python 3.9
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Verify Python installation
       uses: actions/setup-python@v4
       with:
         python-version: '3.9'
-
-    - name: Install system dependencies
+      
+    - name: Install core dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y \
@@ -33,41 +34,59 @@ jobs:
           ccache \
           git \
           libncurses5 \
-          libtinfo5 \
-          libxml2-dev \
-          libxslt-dev
-
+          libtinfo5
+        
         python -m pip install --upgrade pip wheel setuptools
         pip install buildozer==1.5.0 cython==0.29.33 virtualenv appdirs
 
-    - name: Set up Android SDK
+    - name: Setup Android SDK (with verification)
       run: |
+        # Create SDK directory
         mkdir -p ~/android-sdk/cmdline-tools/latest
         cd ~/android-sdk/cmdline-tools/latest
         
-        wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
+        # Download and verify command line tools
+        wget -q --show-progress https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
         unzip -q commandlinetools-linux-9477386_latest.zip
         rm commandlinetools-linux-9477386_latest.zip
-
+        
+        # Verify sdkmanager is accessible
+        if [ ! -f ~/android-sdk/cmdline-tools/latest/bin/sdkmanager ]; then
+          echo "::error::SDK Manager not found!"
+          exit 1
+        fi
+        
         echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
         echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
         echo "PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools" >> $GITHUB_ENV
-
-        yes | sdkmanager --licenses > /dev/null
-        sdkmanager "platform-tools" "build-tools;34.0.0" "platforms;android-33" "ndk;25.1.8937393"
+        
+        # Accept licenses
+        yes | ~/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
+        
+        # Install platform tools with verification
+        ~/android-sdk/cmdline-tools/latest/bin/sdkmanager \
+          "platform-tools" \
+          "build-tools;34.0.0" \
+          "platforms;android-33" \
+          "ndk;25.1.8937393"
+          
+        # Verify installations
+        if [ ! -d ~/android-sdk/platform-tools ]; then
+          echo "::error::Platform tools not installed!"
+          exit 1
+        fi
 
     - name: Prepare build environment
       run: |
         mkdir -p $GITHUB_WORKSPACE/build
         cd $GITHUB_WORKSPACE/build
         
-        # Cria um buildozer.spec completo se não existir
-        if [ ! -f buildozer.spec ]; then
-          cat <<EOF > buildozer.spec
+        # Create verified buildozer.spec
+        cat <<EOF > buildozer.spec
 [app]
-title = BuffetCalculator
-package.name = buffetcalculator
-package.domain = org.yourdomain
+title = MyApp
+package.name = myapp
+package.domain = org.example
 version = 1.0.0
 source.dir = .
 source.include_exts = py,png,jpg,kv,atlas
@@ -82,22 +101,36 @@ android.arch = arm64-v8a
 log_level = 2
 warn_on_root = 1
 EOF
+        
+        # Verify spec file
+        if [ ! -f buildozer.spec ]; then
+          echo "::error::buildozer.spec not created!"
+          exit 1
         fi
 
-    - name: Run Buildozer
+    - name: Run Buildozer (with debug)
       run: |
         cd $GITHUB_WORKSPACE/build
         
-        # Limpa builds anteriores
+        echo "=== Starting Buildozer ==="
         buildozer android clean
         
-        # Build com log detalhado
+        # Run with detailed logging
         buildozer -v android debug 2>&1 | tee build.log
         
-        # Verifica se o APK foi gerado
+        # Check exit status
+        if [ ${PIPESTATUS[0]} -ne 0 ]; then
+          echo "::error::Build failed!"
+          echo "=== Last 50 lines of log ==="
+          tail -n 50 build.log
+          exit 1
+        fi
+        
+        # Verify APK exists
         if [ ! -f bin/*.apk ]; then
-          echo "::error::Build failed - APK not generated"
-          tail -n 100 build.log
+          echo "::error::APK not generated!"
+          echo "=== Build directory contents ==="
+          ls -la bin/
           exit 1
         fi
 
