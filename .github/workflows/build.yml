@@ -1,4 +1,4 @@
-name: Build APK with Buildozer (Stable Version)
+name: Build APK with Docker
 
 on:
   push:
@@ -6,79 +6,46 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04  # Usando versão mais estável
+    runs-on: ubuntu-latest
     timeout-minutes: 60
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3  # Versão mais estável
+      uses: actions/checkout@v4
 
-    - name: Set up Python 3.8  # Versão mais compatível
-      uses: actions/setup-python@v3
-      with:
-        python-version: '3.8'
-
-    - name: Install system dependencies
+    - name: Build with Docker
       run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          python3-pip \
-          build-essential \
-          libssl-dev \
-          libffi-dev \
-          python3-dev \
-          zip \
-          unzip \
-          openjdk-8-jdk  # Java 8 é mais estável para builds Android
-          
-        pip install --upgrade pip==20.3.4  # Versão específica estável
-        pip install buildozer==1.2.0  # Versão mais testada
-        pip install cython==0.29.21
-
-    - name: Set up Android SDK
-      run: |
-        mkdir -p ~/android-sdk
-        cd ~/android-sdk
-        
-        # Baixar ferramentas de linha de comando estáveis
-        wget https://dl.google.com/android/repository/commandlinetools-linux-6609375_latest.zip
-        unzip commandlinetools-linux-6609375_latest.zip
-        rm commandlinetools-linux-6609375_latest.zip
-        
-        echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
-        echo "PATH=$PATH:$ANDROID_HOME/cmdline-tools/bin:$ANDROID_HOME/platform-tools" >> $GITHUB_ENV
-        
-        yes | $ANDROID_HOME/cmdline-tools/bin/sdkmanager --licenses
-        $ANDROID_HOME/cmdline-tools/bin/sdkmanager "platform-tools" "build-tools;30.0.3" "platforms;android-30"
-
-    - name: Prepare build environment
-      run: |
-        mkdir -p $GITHUB_WORKSPACE/build
-        cd $GITHUB_WORKSPACE/build
-        
-        # Configuração mínima estável
-        cat <<EOF > buildozer.spec
+        # Cria estrutura básica se não existir
+        mkdir -p build
+        [ -f build/buildozer.spec ] || cat <<EOF > build/buildozer.spec
 [app]
 title = MyApp
 package.name = myapp
-package.domain = org.test
+package.domain = org.example
 version = 1.0.0
 source.dir = .
 requirements = python3,kivy==2.0.0
 android.api = 30
 android.minapi = 21
-android.sdk_path = $HOME/android-sdk
-android.ndk_path = $HOME/android-sdk/ndk/21.3.6528147
+
+[buildozer]
+log_level = 2
 EOF
 
-    - name: Run Buildozer
-      run: |
-        cd $GITHUB_WORKSPACE/build
-        buildozer -v android debug
+        # Executa o build usando container testado
+        docker run --rm \
+          -v "$PWD":/home/user/hostcwd \
+          -v "$HOME/.buildozer":/home/user/.buildozer \
+          -v "$HOME/.android":/home/user/.android \
+          -e P4A_RELEASE_KEYSTORE=/home/user/hostcwd/build/keystore.jks \
+          -e P4A_RELEASE_KEYSTORE_PASSWD=android \
+          -e P4A_RELEASE_KEYALIAS_PASSWD=android \
+          -e P4A_RELEASE_KEYALIAS=key \
+          kivy/buildozer:1.2.0 \
+          buildozer -v android debug
 
     - name: Upload APK
-      if: success()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: app-apk
-        path: $GITHUB_WORKSPACE/build/bin/*.apk
+        path: build/bin/*.apk
