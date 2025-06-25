@@ -101,4 +101,3 @@ EOF
       with:
         name: app-apk
         path: $GITHUB_WORKSPACE/build/bin/*.apk
-        path: $GITHUB_WORKSPACE/build/bin/*.apk
