@@ -1,3 +1,60 @@
-- name: Verificar se o diretório python-for-android existe
-  run: |
-    ls -l $GITHUB_WORKSPACE/build/.buildozer/android/platform
+name: Build APK with Buildozer
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          python3-pip \
+          build-essential \
+          libssl-dev \
+          libffi-dev \
+          python3-dev \
+          zip \
+          unzip \
+          openjdk-17-jdk \
+          zlib1g-dev \
+          ccache \
+          git \
+          libncurses5 \
+          libtinfo5
+
+        pip install --upgrade pip wheel setuptools
+        pip install buildozer cython virtualenv appdirs python-for-android colorama sh jinja2 six
+
+    - name: Copy requirements.txt
+      run: |
+        cp $GITHUB_WORKSPACE/requirements.txt /home/runner/work/$GITHUB_REPOSITORY/$GITHUB_RUN_ID/
+
+    - name: Run Buildozer
+      run: |
+        cd $GITHUB_WORKSPACE
+        
+        # Certifique-se de que o buildozer.spec está configurado corretamente
+        buildozer -v android clean
+        buildozer -v android debug
+
+    - name: Upload APK
+      if: success()
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-apk
+        path: $GITHUB_WORKSPACE/build/bin/*.apk
