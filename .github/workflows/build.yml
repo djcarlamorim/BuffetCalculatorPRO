@@ -38,7 +38,7 @@ jobs:
           libtinfo5
 
         pip install --upgrade pip wheel setuptools
-        pip install buildozer cython virtualenv appdirs six  # Adicionado 'six' aqui
+        pip install buildozer cython virtualenv appdirs six
 
     - name: Set up Android SDK
       run: |
@@ -53,12 +53,24 @@ jobs:
         echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
         echo "PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools" >> $GITHUB_ENV
 
+        # Aceita as licenças do SDK
         yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+
+        # Instala componentes necessários
         $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
           "platform-tools" \
           "build-tools;34.0.0" \
           "platforms;android-33" \
           "ndk;25.1.8937393"
+
+    - name: Install NDK manually
+      run: |
+        # Baixar e instalar manualmente o NDK
+        wget https://dl.google.com/android/repository/android-ndk-r25c-linux-x86_64.zip
+        unzip android-ndk-r25c-linux-x86_64.zip -d $HOME/android-sdk/ndk
+        rm android-ndk-r25c-linux-x86_64.zip
+        echo "ANDROID_NDK=$HOME/android-sdk/ndk/android-ndk-r25c" >> $GITHUB_ENV
+        echo "PATH=$PATH:$ANDROID_NDK" >> $GITHUB_ENV
 
     - name: Prepare Buildozer environment
       run: |
@@ -84,7 +96,7 @@ jobs:
           echo "package.domain = org.test" >> buildozer.spec
           echo "source.dir = ." >> buildozer.spec
           echo "requirements = python3,kivy" >> buildozer.spec
-          echo "android.ndk_path = $HOME/android-sdk/ndk/25.1.8937393" >> buildozer.spec
+          echo "android.ndk_path = $HOME/android-sdk/ndk/android-ndk-r25c" >> buildozer.spec
           echo "android.sdk_path = $HOME/android-sdk" >> buildozer.spec
           echo "p4a.source_dir = $GITHUB_WORKSPACE/build/.buildozer/android/platform/python-for-android" >> buildozer.spec
           echo "version = 1.0.0" >> buildozer.spec
