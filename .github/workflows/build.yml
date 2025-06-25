@@ -38,7 +38,7 @@ jobs:
           libtinfo5
 
         pip install --upgrade pip wheel setuptools
-        pip install buildozer cython virtualenv appdirs
+        pip install buildozer cython virtualenv appdirs six  # Adicionado 'six' aqui
 
     - name: Set up Android SDK
       run: |
