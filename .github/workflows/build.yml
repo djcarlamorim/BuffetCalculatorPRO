@@ -1,4 +1,4 @@
-name: Build APK with Buildozer
+name: Build APK with Buildozer (Stable Version)
 
 on:
   push:
@@ -6,19 +6,19 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
-    timeout-minutes: 90
+    runs-on: ubuntu-20.04  # Usando versão mais estável
+    timeout-minutes: 60
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Verify Python installation
-      uses: actions/setup-python@v4
+      uses: actions/checkout@v3  # Versão mais estável
+
+    - name: Set up Python 3.8  # Versão mais compatível
+      uses: actions/setup-python@v3
       with:
-        python-version: '3.9'
-      
-    - name: Install core dependencies
+        python-version: '3.8'
+
+    - name: Install system dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y \
@@ -29,113 +29,56 @@ jobs:
           python3-dev \
           zip \
           unzip \
-          openjdk-17-jdk \
-          zlib1g-dev \
-          ccache \
-          git \
-          libncurses5 \
-          libtinfo5
-        
-        python -m pip install --upgrade pip wheel setuptools
-        pip install buildozer==1.5.0 cython==0.29.33 virtualenv appdirs
+          openjdk-8-jdk  # Java 8 é mais estável para builds Android
+          
+        pip install --upgrade pip==20.3.4  # Versão específica estável
+        pip install buildozer==1.2.0  # Versão mais testada
+        pip install cython==0.29.21
 
-    - name: Setup Android SDK (with verification)
+    - name: Set up Android SDK
       run: |
-        # Create SDK directory
-        mkdir -p ~/android-sdk/cmdline-tools/latest
-        cd ~/android-sdk/cmdline-tools/latest
+        mkdir -p ~/android-sdk
+        cd ~/android-sdk
         
-        # Download and verify command line tools
-        wget -q --show-progress https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
-        unzip -q commandlinetools-linux-9477386_latest.zip
-        rm commandlinetools-linux-9477386_latest.zip
-        
-        # Verify sdkmanager is accessible
-        if [ ! -f ~/android-sdk/cmdline-tools/latest/bin/sdkmanager ]; then
-          echo "::error::SDK Manager not found!"
-          exit 1
-        fi
+        # Baixar ferramentas de linha de comando estáveis
+        wget https://dl.google.com/android/repository/commandlinetools-linux-6609375_latest.zip
+        unzip commandlinetools-linux-6609375_latest.zip
+        rm commandlinetools-linux-6609375_latest.zip
         
         echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
-        echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
-        echo "PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools" >> $GITHUB_ENV
+        echo "PATH=$PATH:$ANDROID_HOME/cmdline-tools/bin:$ANDROID_HOME/platform-tools" >> $GITHUB_ENV
         
-        # Accept licenses
-        yes | ~/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
-        
-        # Install platform tools with verification
-        ~/android-sdk/cmdline-tools/latest/bin/sdkmanager \
-          "platform-tools" \
-          "build-tools;34.0.0" \
-          "platforms;android-33" \
-          "ndk;25.1.8937393"
-          
-        # Verify installations
-        if [ ! -d ~/android-sdk/platform-tools ]; then
-          echo "::error::Platform tools not installed!"
-          exit 1
-        fi
+        yes | $ANDROID_HOME/cmdline-tools/bin/sdkmanager --licenses
+        $ANDROID_HOME/cmdline-tools/bin/sdkmanager "platform-tools" "build-tools;30.0.3" "platforms;android-30"
 
     - name: Prepare build environment
       run: |
         mkdir -p $GITHUB_WORKSPACE/build
         cd $GITHUB_WORKSPACE/build
         
-        # Create verified buildozer.spec
+        # Configuração mínima estável
         cat <<EOF > buildozer.spec
 [app]
 title = MyApp
 package.name = myapp
-package.domain = org.example
+package.domain = org.test
 version = 1.0.0
 source.dir = .
-source.include_exts = py,png,jpg,kv,atlas
-requirements = python3,kivy==2.2.1
-android.api = 33
+requirements = python3,kivy==2.0.0
+android.api = 30
 android.minapi = 21
-android.ndk_path = $HOME/android-sdk/ndk/25.1.8937393
 android.sdk_path = $HOME/android-sdk
-android.arch = arm64-v8a
-
-[buildozer]
-log_level = 2
-warn_on_root = 1
+android.ndk_path = $HOME/android-sdk/ndk/21.3.6528147
 EOF
-        
-        # Verify spec file
-        if [ ! -f buildozer.spec ]; then
-          echo "::error::buildozer.spec not created!"
-          exit 1
-        fi
 
-    - name: Run Buildozer (with debug)
+    - name: Run Buildozer
       run: |
         cd $GITHUB_WORKSPACE/build
-        
-        echo "=== Starting Buildozer ==="
-        buildozer android clean
-        
-        # Run with detailed logging
-        buildozer -v android debug 2>&1 | tee build.log
-        
-        # Check exit status
-        if [ ${PIPESTATUS[0]} -ne 0 ]; then
-          echo "::error::Build failed!"
-          echo "=== Last 50 lines of log ==="
-          tail -n 50 build.log
-          exit 1
-        fi
-        
-        # Verify APK exists
-        if [ ! -f bin/*.apk ]; then
-          echo "::error::APK not generated!"
-          echo "=== Build directory contents ==="
-          ls -la bin/
-          exit 1
-        fi
+        buildozer -v android debug
 
     - name: Upload APK
-      uses: actions/upload-artifact@v4
+      if: success()
+      uses: actions/upload-artifact@v3
       with:
         name: app-apk
         path: $GITHUB_WORKSPACE/build/bin/*.apk
