@@ -1,45 +1,30 @@
 [app]
-
-# (str) Title of your application
-title = MyApp
-
-# (str) Package name
-package.name = myapp
-
-# (str) Package domain
-package.domain = org.test
-
-# (str) Version of your application
-version = 1.0.0  # Defina uma versão estática ou com regex, por exemplo, "1.0.*"
-
-# (str) Application source directory
-source.dir = .
-
 # (list) Application requirements
+# Comma separated list of requirements for your application.
+# e.g. requirements = sqlite3,kivy
 requirements = python3,kivy
 
-# (str) Android NDK path
-android.ndk_path = /home/runner/android-sdk/ndk/25.1.8937393
+# (int) Application versioning (method 1)
+version = 1.0.0
 
-# (str) Android SDK path
-android.sdk_path = /home/runner/android-sdk
+# (string) Title of your application
+title = BuffetCalculatorPro
 
-# (str) Python-for-android directory
-android.p4a.source_dir = /home/runner/work/BuffetCalculatorPRO/BuffetCalculatorPRO/build/.buildozer/android/platform/python-for-android
+# (string) Package name
+package.name = buffet_calculator_pro
 
-# (bool) Enable Android NDK for the build
-android.ndk = True
+# (string) Package domain (used for android/ios package identifier)
+package.domain = org.buffetcalculatorpro
 
-# (str) Minimum API level for Android
-android.minapi = 21
+# (bool) Enable android packaging (requires Android SDK, NDK and build tools)
+android = True
 
-# (bool) Use this flag to build a debug version
-debug = True
+# (string) Android NDK version
+# android.ndk_version = 22b
 
-# (list) Application icon (provide path to icon file)
-# icon.filename = %(source.dir)s/icon.png
+# (string) Android NDK directory
+# android.ndk_dir = /path/to/ndk
 
-# (list) Application screens (if needed)
-# screens = screen1.png, screen2.png
+# (string) Android SDK directory
+# android.sdk_dir = /path/to/sdk
 
-# Other necessary configuration settings
