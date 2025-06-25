@@ -1,109 +1,36 @@
-name: Build APK with Buildozer
+[app]
 
-on:
-  push:
-    branches:
-      - main
+# (str) Title of your application
+title = MyApp
 
-jobs:
-  build:
-    runs-on: ubuntu-22.04
-    timeout-minutes: 60
+# (str) Package name
+package.name = myapp
 
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+# (str) Package domain
+package.domain = org.test
 
-    - name: Set up Python 3.9
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.9'
+# (str) Version of your application
+version = 1.0.0  # Aqui você define a versão da sua app
 
-    - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          python3-pip \
-          build-essential \
-          libssl-dev \
-          libffi-dev \
-          python3-dev \
-          zip \
-          unzip \
-          openjdk-17-jdk \
-          zlib1g-dev \
-          ccache \
-          git \
-          libncurses5 \
-          libtinfo5
+# (str) Application source directory
+source.dir = .
 
-        pip install --upgrade pip wheel setuptools
-        pip install buildozer cython virtualenv appdirs
+# (list) Application requirements
+requirements = python3,kivy
 
-    - name: Set up Android SDK
-      run: |
-        mkdir -p $HOME/android-sdk/cmdline-tools/latest
-        cd $HOME/android-sdk/cmdline-tools/latest
-        
-        wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
-        unzip commandlinetools-linux-9477386_latest.zip
-        rm commandlinetools-linux-9477386_latest.zip
+# (str) Android NDK path
+android.ndk_path = /home/runner/android-sdk/ndk/25.1.8937393
 
-        echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
-        echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
-        echo "PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools" >> $GITHUB_ENV
+# (str) Android SDK path
+android.sdk_path = /home/runner/android-sdk
 
-        yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
-        $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
-          "platform-tools" \
-          "build-tools;34.0.0" \
-          "platforms;android-33" \
-          "ndk;25.1.8937393"
+# (str) Python-for-android directory
+android.p4a.source_dir = /home/runner/work/BuffetCalculatorPRO/BuffetCalculatorPRO/build/.buildozer/android/platform/python-for-android
 
-    - name: Install Android NDK
-      run: |
-        # Baixar o Android NDK
-        wget https://dl.google.com/android/repository/android-ndk-r25b-linux.zip -P /home/runner/.buildozer/android/platform/
-        
-        # Descompactar
-        unzip -q /home/runner/.buildozer/android/platform/android-ndk-r25b-linux.zip -d /home/runner/.buildozer/android/platform/
-        
-        # Criar o diretório correto para o NDK
-        mkdir -p /home/runner/android-sdk/ndk/25.1.8937393
-        
-        # Mover para o diretório esperado
-        mv /home/runner/.buildozer/android/platform/android-ndk-r25b /home/runner/android-sdk/ndk/25.1.8937393
+# (bool) Enable Android NDK for the build
+android.ndk = True
 
-    - name: Prepare Buildozer environment
-      run: |
-        mkdir -p $GITHUB_WORKSPACE/build/.buildozer/android/platform
-        cd $GITHUB_WORKSPACE/build
-        
-        # Instalar dependências essenciais do python-for-android
-        pip install colorama sh python-for-android
+# (str) Minimum API level for Android
+android.minapi = 21
 
-    - name: Run Buildozer
-      run: |
-        cd $GITHUB_WORKSPACE/build
-        
-        if [ ! -f buildozer.spec ]; then
-          buildozer init
-          echo "[app]" > buildozer.spec
-          echo "title = MyApp" >> buildozer.spec
-          echo "package.name = myapp" >> buildozer.spec
-          echo "package.domain = org.test" >> buildozer.spec
-          echo "source.dir = ." >> buildozer.spec
-          echo "requirements = python3,kivy" >> buildozer.spec
-          echo "android.ndk_path = $HOME/android-sdk/ndk/25.1.8937393" >> buildozer.spec
-          echo "android.sdk_path = $HOME/android-sdk" >> buildozer.spec
-        fi
-
-        buildozer -v android clean
-        buildozer -v android debug
-
-    - name: Upload APK
-      if: success()
-      uses: actions/upload-artifact@v4
-      with:
-        name: app-apk
-        path: $GITHUB_WORKSPACE/build/bin/*.apk
+# Outros parâmetros relevantes do seu app
