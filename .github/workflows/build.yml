@@ -70,12 +70,13 @@ jobs:
 
     - name: Prepare Buildozer environment
       run: |
-        # Cria diretório para o python-for-android
-        mkdir -p $GITHUB_WORKSPACE/build/.buildozer/android/platform
-        cd $GITHUB_WORKSPACE/build
-
+        # Cria diretório para o python-for-android se não existir
+        mkdir -p $GITHUB_WORKSPACE/build/.buildozer/android/platform/python-for-android
+        
         # Clona python-for-android se não estiver presente
-        git clone https://github.com/kivy/python-for-android.git $GITHUB_WORKSPACE/build/.buildozer/android/platform/python-for-android
+        if [ ! -d "$GITHUB_WORKSPACE/build/.buildozer/android/platform/python-for-android" ]; then
+          git clone https://github.com/kivy/python-for-android.git $GITHUB_WORKSPACE/build/.buildozer/android/platform/python-for-android
+        fi
 
         # Instala dependências manualmente
         pip install colorama sh python-for-android
