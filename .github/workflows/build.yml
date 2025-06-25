@@ -70,11 +70,15 @@ jobs:
 
     - name: Prepare Buildozer environment
       run: |
+        # Cria diretório para o python-for-android
         mkdir -p $GITHUB_WORKSPACE/build/.buildozer/android/platform
         cd $GITHUB_WORKSPACE/build
 
-        # Instala python-for-android se ainda não estiver instalado
-        pip install python-for-android
+        # Clona python-for-android se não estiver presente
+        git clone https://github.com/kivy/python-for-android.git $GITHUB_WORKSPACE/build/.buildozer/android/platform/python-for-android
+
+        # Instala python-for-android
+        pip install -r $GITHUB_WORKSPACE/build/.buildozer/android/platform/python-for-android/requirements.txt
 
     - name: Create buildozer.spec and set version
       run: |
