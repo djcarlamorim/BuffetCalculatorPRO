@@ -67,6 +67,12 @@ jobs:
         
         pip install colorama sh python-for-android
 
+    - name: Create directory for python-for-android if not exists
+      run: |
+        if [ ! -d "$GITHUB_WORKSPACE/build/.buildozer/android/platform/python-for-android" ]; then
+          git clone https://github.com/kivy/python-for-android.git $GITHUB_WORKSPACE/build/.buildozer/android/platform/python-for-android
+        fi
+
     - name: Run Buildozer
       run: |
         cd $GITHUB_WORKSPACE/build
@@ -82,7 +88,7 @@ jobs:
           echo "version = 2.0" >> buildozer.spec
           echo "android.ndk_path = $HOME/android-sdk/ndk/25.1.8937393" >> buildozer.spec
           echo "android.sdk_path = $HOME/android-sdk" >> buildozer.spec
-          echo "android.p4a_dir = $GITHUB_WORKSPACE/build/.buildozer/android/platform/python-for-android" >> buildozer.spec
+          echo "p4a.source_dir = $GITHUB_WORKSPACE/build/.buildozer/android/platform/python-for-android" >> buildozer.spec
         fi
 
         buildozer -v android clean
