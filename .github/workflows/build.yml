@@ -65,7 +65,11 @@ jobs:
         mkdir -p $GITHUB_WORKSPACE/build/.buildozer/android/platform
         cd $GITHUB_WORKSPACE/build
         
-        # Instala dependências essenciais do python-for-android
+        # Baixar python-for-android corretamente
+        git clone --branch stable https://github.com/kivy/python-for-android.git
+        mv python-for-android $GITHUB_WORKSPACE/build/.buildozer/android/platform/python-for-android
+
+        # Instalar dependências do python-for-android
         pip install colorama sh python-for-android
 
     - name: Run Buildozer
@@ -82,8 +86,8 @@ jobs:
           echo "requirements = python3,kivy" >> buildozer.spec
           echo "android.ndk_path = $HOME/android-sdk/ndk/25.1.8937393" >> buildozer.spec
           echo "android.sdk_path = $HOME/android-sdk" >> buildozer.spec
-          echo "android.p4a_dir = $GITHUB_WORKSPACE/build/.buildozer/android/platform/python-for-android" >> buildozer.spec
-          echo "version = 1.0.0" >> buildozer.spec  # Adicionando a versão
+          echo "p4a.source_dir = $GITHUB_WORKSPACE/build/.buildozer/android/platform/python-for-android" >> buildozer.spec
+          echo "version = 1.0.0" >> buildozer.spec
         fi
 
         buildozer -v android clean
