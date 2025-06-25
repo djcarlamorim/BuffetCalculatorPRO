@@ -38,7 +38,7 @@ jobs:
           libtinfo5
 
         pip install --upgrade pip wheel setuptools
-        pip install buildozer cython virtualenv appdirs
+        pip install buildozer cython virtualenv appdirs colorama sh python-for-android
 
     - name: Set up Android SDK
       run: |
@@ -60,30 +60,38 @@ jobs:
           "platforms;android-33" \
           "ndk;25.1.8937393"
 
-    - name: Prepare Buildozer environment
+    - name: Configure Buildozer
       run: |
-        mkdir -p $GITHUB_WORKSPACE/build/.buildozer/android/platform
+        mkdir -p $GITHUB_WORKSPACE/build
         cd $GITHUB_WORKSPACE/build
         
-        # Instala dependências essenciais do python-for-android
-        pip install colorama sh python-for-android
+        # Se não existir buildozer.spec, cria um com configurações mínimas
+        if [ ! -f buildozer.spec ]; then
+          buildozer init
+          cat <<EOF > buildozer.spec
+[app]
+title = BuffetCalculator
+package.name = buffetcalculator
+package.domain = org.djcarlamorim
+version = 1.0.0
+source.dir = .
+source.include_exts = py,png,jpg,kv,atlas
+requirements = python3,kivy
+android.ndk_path = $HOME/android-sdk/ndk/25.1.8937393
+android.sdk_path = $HOME/android-sdk
+android.arch = arm64-v8a
+
+[buildozer]
+log_level = 2
+EOF
+        fi
+
+        # Verifica se o arquivo de especificação é válido
+        buildozer check
 
     - name: Run Buildozer
       run: |
         cd $GITHUB_WORKSPACE/build
-        
-        if [ ! -f buildozer.spec ]; then
-          buildozer init
-          echo "[app]" > buildozer.spec
-          echo "title = MyApp" >> buildozer.spec
-          echo "package.name = myapp" >> buildozer.spec
-          echo "package.domain = org.test" >> buildozer.spec
-          echo "source.dir = ." >> buildozer.spec
-          echo "requirements = python3,kivy" >> buildozer.spec
-          echo "android.ndk_path = $HOME/android-sdk/ndk/25.1.8937393" >> buildozer.spec
-          echo "android.sdk_path = $HOME/android-sdk" >> buildozer.spec
-        fi
-
         buildozer -v android clean
         buildozer -v android debug
 
@@ -92,4 +100,5 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: app-apk
+        path: $GITHUB_WORKSPACE/build/bin/*.apk
         path: $GITHUB_WORKSPACE/build/bin/*.apk
