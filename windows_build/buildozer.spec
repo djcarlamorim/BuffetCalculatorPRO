@@ -12,7 +12,7 @@ version = 2.0  # Versão do aplicativo
 # Android
 android.ndk_path = $HOME/android-sdk/ndk/25.1.8937393
 android.sdk_path = $HOME/android-sdk
-android.p4a_dir = $GITHUB_WORKSPACE/build/.buildozer/android/platform/python-for-android
+p4a.source_dir = $GITHUB_WORKSPACE/build/.buildozer/android/platform/python-for-android  # Atualizado aqui
 
 # Configurações específicas do Android
 android.permissions = INTERNET
