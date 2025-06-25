@@ -72,8 +72,9 @@ jobs:
       run: |
         mkdir -p $GITHUB_WORKSPACE/build/.buildozer/android/platform
         cd $GITHUB_WORKSPACE/build
-        
-        pip install colorama sh python-for-android
+
+        # Instala python-for-android se ainda não estiver instalado
+        pip install python-for-android
 
     - name: Create buildozer.spec and set version
       run: |
