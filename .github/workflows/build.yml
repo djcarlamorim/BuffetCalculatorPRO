@@ -4,14 +4,11 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    timeout-minutes: 60  # Aumentei o timeout para builds mais longos
+    runs-on: ubuntu-22.04  # Mude para LTS estável
+    timeout-minutes: 40
 
     steps:
     - name: Checkout code
@@ -33,61 +30,61 @@ jobs:
           python3-dev \
           zip \
           unzip \
-          openjdk-17-jdk \  # Java 17 é mais compatível com versões recentes do Android
+          openjdk-17-jdk \
           zlib1g-dev \
           ccache \
-          git
+          git \
+          libncurses5 \
+          libtinfo5  # Dependências adicionais para o NDK
 
+        # Configura alternativas para Java
+        sudo update-alternatives --set java /usr/lib/jvm/java-17-openjdk-amd64/bin/java
         pip install --upgrade pip wheel setuptools
         pip install buildozer cython virtualenv
 
     - name: Set up Android SDK
       run: |
-        # Criar estrutura de diretórios correta para o SDK
         mkdir -p $HOME/android-sdk/cmdline-tools/latest
         cd $HOME/android-sdk/cmdline-tools/latest
         
-        # Baixar Command Line Tools mais recentes
-        wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline-tools.zip
-        unzip cmdline-tools.zip
-        rm cmdline-tools.zip
+        # Baixa Command Line Tools
+        wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
+        unzip commandlinetools-linux-9477386_latest.zip
+        rm commandlinetools-linux-9477386_latest.zip
 
-        # Configurar variáveis de ambiente
         echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
         echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
         echo "PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools" >> $GITHUB_ENV
 
-        # Aceitar licenças
         yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
-
-        # Instalar componentes necessários
         $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
           "platform-tools" \
           "build-tools;34.0.0" \
           "platforms;android-33" \
           "ndk;25.1.8937393"
 
-    - name: Configure Buildozer
+    - name: Run Buildozer
+      timeout-minutes: 30
       run: |
-        # Criar diretório para o build se não existir
         mkdir -p $GITHUB_WORKSPACE/build
         cd $GITHUB_WORKSPACE/build
         
-        # Inicializar Buildozer se não houver arquivo .spec
-        if [ ! -f buildozer.spec ]; then
-          buildozer init
-        fi
-        
-        # Copiar seu arquivo .spec existente se necessário
+        # Copia seu buildozer.spec se existir
         if [ -f $GITHUB_WORKSPACE/windows_build/buildozer.spec ]; then
           cp $GITHUB_WORKSPACE/windows_build/buildozer.spec .
+        else
+          buildozer init
         fi
 
-    - name: Run Buildozer
-      run: |
-        cd $GITHUB_WORKSPACE/build
         buildozer -v android clean
-        buildozer -v android debug
+        buildozer -v android debug 2>&1 | tee build.log
+        
+        # Verifica se o APK foi gerado
+        if [ ! -f bin/*.apk ]; then
+          echo "ERRO: APK não foi gerado"
+          tail -n 100 build.log
+          exit 1
+        fi
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
