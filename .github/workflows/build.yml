@@ -39,11 +39,11 @@ jobs:
           unzip
 
         pip install --upgrade pip wheel setuptools
-        pip install buildozer cython virtualenv
+        pip install buildozer cython virtualenv appdirs  # Adicionado appdirs explicitamente
 
-    - name: Set up Android SDK and NDK
+    - name: Set up Android environment
       run: |
-        # Configura diretórios
+        # Configura diretórios do SDK
         mkdir -p $HOME/android-sdk/cmdline-tools/latest
         cd $HOME/android-sdk/cmdline-tools/latest
         
@@ -52,6 +52,7 @@ jobs:
         unzip commandlinetools-linux-9477386_latest.zip
         rm commandlinetools-linux-9477386_latest.zip
 
+        # Configura variáveis de ambiente
         echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
         echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
         echo "PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools" >> $GITHUB_ENV
@@ -66,34 +67,48 @@ jobs:
           "platforms;android-33" \
           "ndk;25.1.8937393"
 
-        # Configura python-for-android manualmente
-        git clone https://github.com/kivy/python-for-android.git
+    - name: Prepare python-for-android
+      run: |
+        # Cria estrutura de diretórios necessária
         mkdir -p $GITHUB_WORKSPACE/build/.buildozer/android/platform
+        
+        # Clona python-for-android com a versão estável
+        git clone --branch stable https://github.com/kivy/python-for-android.git
         mv python-for-android $GITHUB_WORKSPACE/build/.buildozer/android/platform/
+        
+        # Instala dependências do python-for-android
+        pip install -r $GITHUB_WORKSPACE/build/.buildozer/android/platform/python-for-android/requirements.txt
 
     - name: Run Buildozer
       run: |
         cd $GITHUB_WORKSPACE/build
         
-        # Copia spec file se existir
-        if [ -f $GITHUB_WORKSPACE/windows_build/buildozer.spec ]; then
-          cp $GITHUB_WORKSPACE/windows_build/buildozer.spec .
-        else
+        # Configuração mínima se não houver buildozer.spec
+        if [ ! -f buildozer.spec ]; then
           buildozer init
-          # Configurações mínimas no spec
           echo "[app]" > buildozer.spec
           echo "title = MyApp" >> buildozer.spec
           echo "package.name = myapp" >> buildozer.spec
           echo "package.domain = org.test" >> buildozer.spec
           echo "source.dir = ." >> buildozer.spec
-          echo "version = 0.1" >> buildozer.spec
           echo "requirements = python3,kivy" >> buildozer.spec
           echo "android.ndk_path = $HOME/android-sdk/ndk/25.1.8937393" >> buildozer.spec
           echo "android.sdk_path = $HOME/android-sdk" >> buildozer.spec
+          echo "android.p4a_dir = $GITHUB_WORKSPACE/build/.buildozer/android/platform/python-for-android" >> buildozer.spec
         fi
 
+        # Limpa builds anteriores
         buildozer -v android clean
-        buildozer -v android debug
+        
+        # Executa o build com log detalhado
+        buildozer -v android debug 2>&1 | tee build.log
+        
+        # Verifica se o APK foi gerado
+        if [ ! -f bin/*.apk ]; then
+          echo "ERRO: APK não foi gerado"
+          tail -n 100 build.log
+          exit 1
+        fi
 
     - name: Upload APK
       if: success()
