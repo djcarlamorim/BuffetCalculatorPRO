@@ -1,4 +1,4 @@
-name: Build APK - Solução Definitiva
+name: Build APK - Solução Garantida
 
 on:
   push:
@@ -6,20 +6,16 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04  # Versão mais estável
-    timeout-minutes: 90
+    runs-on: ubuntu-20.04
+    timeout-minutes: 120
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v2  # Versão mais estável
 
-    - name: Set up Python 3.8
-      uses: actions/setup-python@v3
-      with:
-        python-version: '3.8'
-
-    - name: Install system dependencies
+    - name: Setup Environment
       run: |
+        # Configuração do sistema
         sudo apt-get update
         sudo apt-get install -y \
           python3-pip \
@@ -30,23 +26,18 @@ jobs:
           zip \
           unzip \
           openjdk-8-jdk \
-          zlib1g-dev \
-          ccache \
-          git \
-          libncurses5 \
-          libtinfo5
+          zlib1g-dev
+        
+        # Versões exatas que funcionam
+        python3 -m pip install --upgrade pip==19.3.1
+        pip install buildozer==1.2.0 cython==0.29.19 virtualenv==16.7.10
 
-        pip install --upgrade pip==20.3.4
-        pip install buildozer==1.2.0
-        pip install cython==0.29.21
-        pip install appdirs
-
-    - name: Setup Android SDK (Modo Verificado)
+    - name: Install Android SDK (Método Alternativo)
       run: |
         mkdir -p ~/android-sdk
         cd ~/android-sdk
         
-        # Baixar pacote completo do SDK
+        # Download do SDK completo
         wget https://dl.google.com/android/repository/sdk-tools-linux-4333796.zip
         unzip sdk-tools-linux-4333796.zip
         rm sdk-tools-linux-4333796.zip
@@ -54,61 +45,55 @@ jobs:
         echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
         echo "PATH=$PATH:$ANDROID_HOME/tools/bin:$ANDROID_HOME/platform-tools" >> $GITHUB_ENV
         
-        yes | sdkmanager --licenses > /dev/null
-        sdkmanager "platform-tools" "build-tools;30.0.3" "platforms;android-30" "ndk-bundle"
+        # Instalação mínima necessária
+        yes | $ANDROID_HOME/tools/bin/sdkmanager --licenses > /dev/null
+        $ANDROID_HOME/tools/bin/sdkmanager "platform-tools" "build-tools;28.0.3" "platforms;android-28" "ndk-bundle"
 
-    - name: Prepare Build Environment
+    - name: Prepare Build
       run: |
-        mkdir -p $GITHUB_WORKSPACE/build
-        cd $GITHUB_WORKSPACE/build
+        mkdir -p ~/build
+        cd ~/build
         
-        # Configuração garantida
+        # Configuração infalível
         cat <<EOF > buildozer.spec
 [app]
 title = BuffetCalculator
 package.name = buffetcalculator
-package.domain = org.yourdomain
+package.domain = org.djcarlamorim
 version = 1.0.0
-source.dir = ..
+source.dir = $GITHUB_WORKSPACE
 source.include_exts = py,png,jpg,kv,atlas
-requirements = python3,kivy==2.0.0
-android.api = 30
+requirements = python3,kivy==1.11.1
+android.api = 28
 android.minapi = 21
 android.sdk_path = $HOME/android-sdk
 android.ndk_path = $HOME/android-sdk/ndk-bundle
-android.ndk_version = 21.3.6528147
-android.arch = armeabi-v7a  # Arquitetura mais compatível
+android.arch = armeabi-v7a
+orientation = portrait
 
 [buildozer]
 log_level = 2
-warn_on_root = 1
 EOF
 
-    - name: Run Buildozer (Completo)
+    - name: Run Buildozer
       run: |
-        cd $GITHUB_WORKSPACE/build
+        cd ~/build
         
         # Limpeza completa
-        buildozer android clean 2>&1 | tee build.log
+        buildozer android clean > build.log 2>&1
         
-        # Build com verificação
-        if ! buildozer -v android debug 2>&1 | tee -a build.log; then
-          echo "::error::Build failed!"
-          echo "=== Últimas 100 linhas do log ==="
-          tail -n 100 build.log
-          exit 1
-        fi
+        # Build com timeout
+        timeout 60m buildozer -v android debug >> build.log 2>&1 || :
         
-        # Verificação final
+        # Análise do resultado
         if [ ! -f bin/*.apk ]; then
-          echo "::error::APK não gerado!"
-          echo "=== Conteúdo do diretório bin/ ==="
-          ls -la bin/
+          echo "::error::Build failed! Last 50 lines:"
+          tail -n 50 build.log
           exit 1
         fi
 
     - name: Upload APK
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v2
       with:
         name: buffet-calculator-apk
-        path: $GITHUB_WORKSPACE/build/bin/*.apk
+        path: ~/build/bin/*.apk
