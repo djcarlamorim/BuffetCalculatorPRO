@@ -40,11 +40,6 @@ jobs:
         pip install --upgrade pip wheel setuptools
         pip install buildozer cython virtualenv appdirs
 
-    - name: Install compatible version of 'sh'
-      run: |
-        pip uninstall -y sh  # Desinstalar versão incompatível
-        pip install sh==1.14.0  # Instalar versão compatível
-
     - name: Set up Android SDK
       run: |
         mkdir -p $HOME/android-sdk/cmdline-tools/latest
@@ -67,8 +62,16 @@ jobs:
 
     - name: Install Android NDK
       run: |
+        # Baixar o Android NDK
         wget https://dl.google.com/android/repository/android-ndk-r25b-linux.zip -P /home/runner/.buildozer/android/platform/
+        
+        # Descompactar
         unzip -q /home/runner/.buildozer/android/platform/android-ndk-r25b-linux.zip -d /home/runner/.buildozer/android/platform/
+        
+        # Criar o diretório correto para o NDK
+        mkdir -p /home/runner/android-sdk/ndk/25.1.8937393
+        
+        # Mover para o diretório esperado
         mv /home/runner/.buildozer/android/platform/android-ndk-r25b /home/runner/android-sdk/ndk/25.1.8937393
 
     - name: Prepare Buildozer environment
@@ -76,6 +79,7 @@ jobs:
         mkdir -p $GITHUB_WORKSPACE/build/.buildozer/android/platform
         cd $GITHUB_WORKSPACE/build
         
+        # Instalar dependências essenciais do python-for-android
         pip install colorama sh python-for-android
 
     - name: Run Buildozer
@@ -90,10 +94,8 @@ jobs:
           echo "package.domain = org.test" >> buildozer.spec
           echo "source.dir = ." >> buildozer.spec
           echo "requirements = python3,kivy" >> buildozer.spec
-          echo "version = 2.0" >> buildozer.spec
           echo "android.ndk_path = $HOME/android-sdk/ndk/25.1.8937393" >> buildozer.spec
           echo "android.sdk_path = $HOME/android-sdk" >> buildozer.spec
-          echo "p4a.source_dir = $GITHUB_WORKSPACE/build/.buildozer/android/platform/python-for-android" >> buildozer.spec
         fi
 
         buildozer -v android clean
