@@ -38,25 +38,26 @@ jobs:
           libtinfo5
 
         pip install --upgrade pip wheel setuptools
-        pip install buildozer cython virtualenv appdirs six
+        pip install buildozer cython virtualenv appdirs
 
     - name: Set up Android SDK
       run: |
+        # Criar diretório para SDK
         mkdir -p $HOME/android-sdk/cmdline-tools/latest
         cd $HOME/android-sdk/cmdline-tools/latest
-        
+
+        # Baixar e extrair o SDK
         wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
         unzip commandlinetools-linux-9477386_latest.zip
         rm commandlinetools-linux-9477386_latest.zip
 
+        # Definir variáveis de ambiente para SDK
         echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
         echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
         echo "PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools" >> $GITHUB_ENV
 
-        # Aceita as licenças do SDK
+        # Aceitar licenças e instalar pacotes essenciais
         yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
-
-        # Instala componentes necessários
         $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
           "platform-tools" \
           "build-tools;34.0.0" \
@@ -66,10 +67,10 @@ jobs:
     - name: Install NDK manually
       run: |
         # Baixar e instalar manualmente o NDK
-        wget https://dl.google.com/android/repository/android-ndk-r25c-linux-x86_64.zip
-        unzip android-ndk-r25c-linux-x86_64.zip -d $HOME/android-sdk/ndk
-        rm android-ndk-r25c-linux-x86_64.zip
-        echo "ANDROID_NDK=$HOME/android-sdk/ndk/android-ndk-r25c" >> $GITHUB_ENV
+        wget https://dl.google.com/android/repository/android-ndk-r21e-linux-x86_64.zip
+        unzip android-ndk-r21e-linux-x86_64.zip -d $HOME/android-sdk/ndk
+        rm android-ndk-r21e-linux-x86_64.zip
+        echo "ANDROID_NDK=$HOME/android-sdk/ndk/android-ndk-r21e" >> $GITHUB_ENV
         echo "PATH=$PATH:$ANDROID_NDK" >> $GITHUB_ENV
 
     - name: Prepare Buildozer environment
@@ -77,11 +78,7 @@ jobs:
         mkdir -p $GITHUB_WORKSPACE/build/.buildozer/android/platform
         cd $GITHUB_WORKSPACE/build
         
-        # Baixar python-for-android corretamente
-        git clone --branch stable https://github.com/kivy/python-for-android.git
-        mv python-for-android $GITHUB_WORKSPACE/build/.buildozer/android/platform/python-for-android
-
-        # Instalar dependências do python-for-android
+        # Instalar dependências essenciais do python-for-android
         pip install colorama sh python-for-android
 
     - name: Run Buildozer
@@ -96,12 +93,11 @@ jobs:
           echo "package.domain = org.test" >> buildozer.spec
           echo "source.dir = ." >> buildozer.spec
           echo "requirements = python3,kivy" >> buildozer.spec
-          echo "android.ndk_path = $HOME/android-sdk/ndk/android-ndk-r25c" >> buildozer.spec
+          echo "android.ndk_path = $HOME/android-sdk/ndk/android-ndk-r21e" >> buildozer.spec
           echo "android.sdk_path = $HOME/android-sdk" >> buildozer.spec
-          echo "p4a.source_dir = $GITHUB_WORKSPACE/build/.buildozer/android/platform/python-for-android" >> buildozer.spec
-          echo "version = 1.0.0" >> buildozer.spec
         fi
 
+        # Limpar builds anteriores e construir o APK
         buildozer -v android clean
         buildozer -v android debug
 
