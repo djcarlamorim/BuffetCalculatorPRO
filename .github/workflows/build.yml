@@ -2,17 +2,15 @@ name: Build APK with Buildozer
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
   build:
     runs-on: ubuntu-22.04
-    timeout-minutes: 60
+    timeout-minutes: 90  # Aumentado para builds complexos
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
     - name: Set up Python 3.9
       uses: actions/setup-python@v4
@@ -35,68 +33,75 @@ jobs:
           ccache \
           git \
           libncurses5 \
-          libtinfo5
+          libtinfo5 \
+          libxml2-dev \
+          libxslt-dev
 
-        pip install --upgrade pip wheel setuptools
-        pip install buildozer cython virtualenv appdirs colorama sh python-for-android
+        python -m pip install --upgrade pip wheel setuptools
+        pip install buildozer==1.5.0 cython==0.29.33 virtualenv appdirs
 
     - name: Set up Android SDK
       run: |
-        mkdir -p $HOME/android-sdk/cmdline-tools/latest
-        cd $HOME/android-sdk/cmdline-tools/latest
+        mkdir -p ~/android-sdk/cmdline-tools/latest
+        cd ~/android-sdk/cmdline-tools/latest
         
-        wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
-        unzip commandlinetools-linux-9477386_latest.zip
+        wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
+        unzip -q commandlinetools-linux-9477386_latest.zip
         rm commandlinetools-linux-9477386_latest.zip
 
         echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
         echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
         echo "PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools" >> $GITHUB_ENV
 
-        yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
-        $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
-          "platform-tools" \
-          "build-tools;34.0.0" \
-          "platforms;android-33" \
-          "ndk;25.1.8937393"
+        yes | sdkmanager --licenses > /dev/null
+        sdkmanager "platform-tools" "build-tools;34.0.0" "platforms;android-33" "ndk;25.1.8937393"
 
-    - name: Configure Buildozer
+    - name: Prepare build environment
       run: |
         mkdir -p $GITHUB_WORKSPACE/build
         cd $GITHUB_WORKSPACE/build
         
-        # Se não existir buildozer.spec, cria um com configurações mínimas
+        # Cria um buildozer.spec completo se não existir
         if [ ! -f buildozer.spec ]; then
-          buildozer init
           cat <<EOF > buildozer.spec
 [app]
 title = BuffetCalculator
 package.name = buffetcalculator
-package.domain = org.djcarlamorim
+package.domain = org.yourdomain
 version = 1.0.0
 source.dir = .
 source.include_exts = py,png,jpg,kv,atlas
-requirements = python3,kivy
+requirements = python3,kivy==2.2.1
+android.api = 33
+android.minapi = 21
 android.ndk_path = $HOME/android-sdk/ndk/25.1.8937393
 android.sdk_path = $HOME/android-sdk
 android.arch = arm64-v8a
 
 [buildozer]
 log_level = 2
+warn_on_root = 1
 EOF
         fi
-
-        # Verifica se o arquivo de especificação é válido
-        buildozer check
 
     - name: Run Buildozer
       run: |
         cd $GITHUB_WORKSPACE/build
-        buildozer -v android clean
-        buildozer -v android debug
+        
+        # Limpa builds anteriores
+        buildozer android clean
+        
+        # Build com log detalhado
+        buildozer -v android debug 2>&1 | tee build.log
+        
+        # Verifica se o APK foi gerado
+        if [ ! -f bin/*.apk ]; then
+          echo "::error::Build failed - APK not generated"
+          tail -n 100 build.log
+          exit 1
+        fi
 
     - name: Upload APK
-      if: success()
       uses: actions/upload-artifact@v4
       with:
         name: app-apk
