@@ -38,7 +38,7 @@ jobs:
           libtinfo5
 
         pip install --upgrade pip wheel setuptools
-        pip install buildozer cython virtualenv appdirs python-for-android colorama sh jinja2 six
+        pip install buildozer cython virtualenv appdirs
 
     - name: Set up Android SDK
       run: |
@@ -64,14 +64,13 @@ jobs:
       run: |
         mkdir -p $GITHUB_WORKSPACE/build/.buildozer/android/platform
         cd $GITHUB_WORKSPACE/build
-
-        # Instalar dependências essenciais do python-for-android
+        
         pip install colorama sh python-for-android
 
     - name: Run Buildozer
       run: |
         cd $GITHUB_WORKSPACE/build
-
+        
         if [ ! -f buildozer.spec ]; then
           buildozer init
           echo "[app]" > buildozer.spec
@@ -80,8 +79,10 @@ jobs:
           echo "package.domain = org.test" >> buildozer.spec
           echo "source.dir = ." >> buildozer.spec
           echo "requirements = python3,kivy" >> buildozer.spec
+          echo "version = 2.0" >> buildozer.spec
           echo "android.ndk_path = $HOME/android-sdk/ndk/25.1.8937393" >> buildozer.spec
           echo "android.sdk_path = $HOME/android-sdk" >> buildozer.spec
+          echo "android.p4a_dir = $GITHUB_WORKSPACE/build/.buildozer/android/platform/python-for-android" >> buildozer.spec
         fi
 
         buildozer -v android clean
