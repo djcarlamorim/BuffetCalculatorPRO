@@ -1,10 +1,3 @@
-name: Build APK with Buildozer
-
-on:
-  push:
-    branches:
-      - main
-
 jobs:
   build:
     runs-on: ubuntu-22.04
@@ -37,71 +30,21 @@ jobs:
           libncurses5 \
           libtinfo5
 
-        pip install --upgrade pip wheel setuptools
-        pip install buildozer cython virtualenv appdirs
-
-    - name: Set up Android SDK
+    - name: Cria diretório para o python-for-android se não existir
       run: |
-        mkdir -p $HOME/android-sdk/cmdline-tools/latest
-        cd $HOME/android-sdk/cmdline-tools/latest
+        mkdir -p $GITHUB_WORKSPACE/build/.buildozer/android/platform/python-for-android
 
-        wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
-        unzip commandlinetools-linux-9477386_latest.zip
-        rm commandlinetools-linux-9477386_latest.zip
-
-        echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
-        echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
-        echo "PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools" >> $GITHUB_ENV
-
-        yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
-        $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
-          "platform-tools" \
-          "build-tools;34.0.0" \
-          "platforms;android-33" \
-          "ndk;25.1.8937393"
-
-    - name: Install NDK manually
+    - name: Clonar o repositório python-for-android
       run: |
-        wget https://dl.google.com/android/repository/android-ndk-r21e-linux-x86_64.zip
-        unzip android-ndk-r21e-linux-x86_64.zip -d $HOME/android-sdk/ndk
-        rm android-ndk-r21e-linux-x86_64.zip
-        echo "ANDROID_NDK=$HOME/android-sdk/ndk/android-ndk-r21e" >> $GITHUB_ENV
-        echo "PATH=$PATH:$ANDROID_NDK" >> $GITHUB_ENV
+        cd $GITHUB_WORKSPACE/build/.buildozer/android/platform
+        git clone https://github.com/kivy/python-for-android.git
 
-    - name: Prepare Buildozer environment
+    - name: Instalar dependências do python-for-android
       run: |
-        # Cria diretório para o python-for-android se não existir
-        mkdir -p $GITHUB_WORKSPACE/build/.buildozer/android/platform
-        
-        # Clona o repositório python-for-android se não estiver presente
-        if [ ! -d "$GITHUB_WORKSPACE/build/.buildozer/android/platform/python-for-android" ]; then
-          git clone https://github.com/kivy/python-for-android.git $GITHUB_WORKSPACE/build/.buildozer/android/platform/python-for-android
-        fi
-        
-        # Instala dependências necessárias diretamente via pip
-        pip install python-for-android colorama sh
+        cd $GITHUB_WORKSPACE/build/.buildozer/android/platform/python-for-android
+        pip install -r requirements.txt
 
-    - name: Create buildozer.spec and set version
+    - name: Run Buildozer
       run: |
-        if [ ! -f buildozer.spec ]; then
-          buildozer init
-          echo "[app]" > buildozer.spec
-          echo "title = MyApp" >> buildozer.spec
-          echo "package.name = myapp" >> buildozer.spec
-          echo "package.domain = org.test" >> buildozer.spec
-          echo "source.dir = ." >> buildozer.spec
-          echo "requirements = python3,kivy" >> buildozer.spec
-          echo "android.ndk_path = $HOME/android-sdk/ndk/android-ndk-r21e" >> buildozer.spec
-          echo "android.sdk_path = $HOME/android-sdk" >> buildozer.spec
-          echo "version = 1.0.0" >> buildozer.spec  # Definindo versão
-        fi
-
-        buildozer -v android clean
-        buildozer -v android debug
-
-    - name: Upload APK
-      if: success()
-      uses: actions/upload-artifact@v4
-      with:
-        name: app-apk
-        path: $GITHUB_WORKSPACE/build/bin/*.apk
+        cd $GITHUB_WORKSPACE/build
+        buildozer android debug
